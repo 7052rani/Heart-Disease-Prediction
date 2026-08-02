@@ -77,7 +77,7 @@ transition:.3s;
 st.markdown(page_bg,unsafe_allow_html=True)
 
 # ==================== SIDEBAR ====================
-st.sidebar.image("Project\Screenshot 2026-08-02 221434.png", width=180)
+st.sidebar.image("Screenshot 2026-08-02 221434.png", width=180)
 st.sidebar.title("🏥 AI Healthcare")
 st.sidebar.markdown("---")
 st.sidebar.success("✔ KNN Machine Learning Model")
@@ -94,7 +94,7 @@ st.sidebar.write("### Rani Rajput")
 col1,col2=st.columns([1,6])
 
 with col1:
-    st.image("Project\Screenshot 2026-08-02 221400.png",width=200)
+    st.image("Screenshot 2026-08-02 221400.png",width=200)
 
 with col2:
     st.markdown("""
