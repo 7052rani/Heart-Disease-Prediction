@@ -3,10 +3,17 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import time
+import joblib  # ADD THIS
 
-# Note: You'll need to load your model and scaler
-# model = joblib.load('model.pkl')  # or your model loading method
-# scaler = joblib.load('scaler.pkl')  # or your scaler loading method
+# ============ LOAD MODEL AND SCALER ============
+@st.cache_resource
+def load_models():
+    model = joblib.load("KNN_heart.pkl")
+    scaler = joblib.load("scaler.pkl")
+    expected_columns = joblib.load("columns.pkl")
+    return model, scaler, expected_columns
+
+model, scaler, expected_columns = load_models()
 
 def get_base64(file):
     with open(file,"rb") as f:
@@ -123,130 +130,74 @@ st.markdown("""
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    age = st.slider(
-        "🎂 Age",
-        18,
-        100,
-        40
-    )
-
-    sex = st.selectbox(
-        "🚻 Gender",
-        ["M", "F"]
-    )
-
-    fasting_bs = st.selectbox(
-        "🩸 Fasting Blood Sugar",
-        [0, 1]
-    )
+    age = st.slider("🎂 Age", 18, 100, 40)
+    sex = st.selectbox("🚻 Gender", ["M", "F"])
+    fasting_bs = st.selectbox("🩸 Fasting Blood Sugar", [0, 1])
 
 with col2:
-    chest_pain = st.selectbox(
-        "❤️ Chest Pain Type",
-        ["ATA", "NAP", "TA", "ASY"]
-    )
-
-    resting_bp = st.number_input(
-        "🩺 Resting Blood Pressure",
-        80,
-        200,
-        120
-    )
-
-    cholesterol = st.number_input(
-        "🧪 Cholesterol",
-        100,
-        600,
-        200
-    )
+    chest_pain = st.selectbox("❤️ Chest Pain Type", ["ATA", "NAP", "TA", "ASY"])
+    resting_bp = st.number_input("🩺 Resting Blood Pressure", 80, 200, 120)
+    cholesterol = st.number_input("🧪 Cholesterol", 100, 600, 200)
 
 with col3:
-    resting_ecg = st.selectbox(
-        "📈 Resting ECG",
-        ["Normal", "ST", "LVH"]
-    )
-
-    max_hr = st.slider(
-        "💓 Max Heart Rate",
-        60,
-        220,
-        150
-    )
-
-    exercise_angina = st.selectbox(
-        "🏃 Exercise Angina",
-        ["Y", "N"]
-    )
-
-    oldpeak = st.slider(
-        "📉 Old Peak",
-        0.0,
-        6.0,
-        1.0
-    )
-
-    st_slope = st.selectbox(
-        "📊 ST Slope",
-        ["Up", "Flat", "Down"]
-    )
+    resting_ecg = st.selectbox("📈 Resting ECG", ["Normal", "ST", "LVH"])
+    max_hr = st.slider("💓 Max Heart Rate", 60, 220, 150)
+    exercise_angina = st.selectbox("🏃 Exercise Angina", ["Y", "N"])
+    oldpeak = st.slider("📉 Old Peak", 0.0, 6.0, 1.0)
+    st_slope = st.selectbox("📊 ST Slope", ["Up", "Flat", "Down"])
 
 # Predict button
-predict = st.button(
-    "🩺 Predict Heart Disease",
-    use_container_width=True
-)
+predict = st.button("🩺 Predict Heart Disease", use_container_width=True)
 
-# If you have model and scaler loaded, uncomment this section
 if predict:
     with st.spinner("🧠 AI is analyzing patient data..."):
         time.sleep(2)
     
-    # Define expected columns (this should match your model's training columns)
-    # You need to define this based on your model
-    expected_columns = []  # Define your expected columns here
-    
-    raw_input = {
-        'Age': age,
-        'RestingBP': resting_bp,
-        'Cholesterol': cholesterol,
-        'FastingBS': fasting_bs,
-        'MaxHR': max_hr,
-        'Oldpeak': oldpeak,
-        'Sex_' + sex: 1,
-        'ChestPainType_' + chest_pain: 1,
-        'RestingECG_' + resting_ecg: 1,
-        'ExerciseAngina_' + exercise_angina: 1,
-        'ST_Slope_' + st_slope: 1
-    }
+    # Define expected columns (match your model's training columns)
 
-    input_df = pd.DataFrame([raw_input])
+# Create dataframe exactly like training data
+input_df = pd.DataFrame({
+    "Age": [age],
+    "Sex": [sex],
+    "ChestPainType": [chest_pain],
+    "RestingBP": [resting_bp],
+    "Cholesterol": [cholesterol],
+    "FastingBS": [fasting_bs],
+    "RestingECG": [resting_ecg],
+    "MaxHR": [max_hr],
+    "ExerciseAngina": [exercise_angina],
+    "Oldpeak": [oldpeak],
+    "ST_Slope": [st_slope]
+})
 
-    for col in expected_columns:
-        if col not in input_df.columns:
-            input_df[col] = 0
+# Convert categorical columns to dummy variables
+input_df = pd.get_dummies(input_df, drop_first=True)
 
-    input_df = input_df[expected_columns]
+# Match the training columns exactly
+input_df = input_df.reindex(columns=expected_columns, fill_value=0)
 
-    # Comment this out until you have your model loaded
-    # scaled_input = scaler.transform(input_df)
+# Scale
+scaled_input = scaler.transform(input_df)
 
-    # with st.spinner("🧠 AI is analysing patient..."):
-    #     prediction = model.predict(scaled_input)[0]
-    #     probability = model.predict_proba(scaled_input)
-    #     risk = probability[0][1]
-    
-    # For demo purposes
-    prediction = 0  # Remove this when you have actual model
-    risk = 0.25     # Remove this when you have actual model
+# Predict
+prediction = model.predict(scaled_input)[0]
+probability = model.predict_proba(scaled_input)
+risk = probability[0][1]
+
+    # Scale the input
+scaled_input = scaler.transform(input_df)
+
+    # Actual prediction
+with st.spinner("🧠 AI is analysing patient..."):
+        prediction = model.predict(scaled_input)[0]
+        probability = model.predict_proba(scaled_input)
+        risk = probability[0][1]
     
     # Gauge chart
-    fig = go.Figure(go.Indicator(
+fig = go.Figure(go.Indicator(
         mode="gauge+number",
         value=risk*100,
-        title={
-            'text':"Heart Disease Risk (%)",
-            'font':{'size':30}
-        },
+        title={'text':"Heart Disease Risk (%)", 'font':{'size':30}},
         gauge={
             'axis':{'range':[0,100]},
             'bar':{'color':"red"},
@@ -258,53 +209,38 @@ if predict:
         }
     ))
 
-    st.plotly_chart(fig,use_container_width=True)
+st.plotly_chart(fig,use_container_width=True)
     
-    st.metric(
-        "Risk Probability",
-        f"{risk*100:.2f}%"
-    )
+st.metric("Risk Probability", f"{risk*100:.2f}%")
     
-    # FIXED: Proper indentation for error/success messages
-    if prediction == 1:
+if prediction == 1:
         st.error("""
 🚨 High Risk of Heart Disease
 
 Please consult a Cardiologist immediately.
 """)
-    else:
+else:
         st.success("""
 ✅ Low Risk of Heart Disease
 
 Heart condition looks normal.
 """)
     
-    st.markdown("## 📋 Patient Summary")
+st.markdown("## 📋 Patient Summary")
     
-    summary = pd.DataFrame({
-        "Feature":[
-            "Age",
-            "Gender",
-            "Chest Pain",
-            "Blood Pressure",
-            "Cholesterol",
-            "Max Heart Rate"
-        ],
-        "Value":[
-            age,
-            sex,
-            chest_pain,
-            resting_bp,
-            cholesterol,
-            max_hr
-        ]
+summary = pd.DataFrame({
+        "Feature":["Age", "Gender", "Chest Pain", "Blood Pressure", "Cholesterol", "Max Heart Rate"],
+        "Value":[age, sex, chest_pain, resting_bp, cholesterol, max_hr]
     })
 
-    st.dataframe(summary,use_container_width=True)
-    st.progress(risk)
+st.dataframe(summary,use_container_width=True)
+st.progress(risk)
     
-    if prediction == 0:
+if prediction == 0:
         st.balloons()
+st.write("Prediction :", prediction)
+st.write("Probability :", probability)
+st.write(input_df)
 
 st.markdown("---")
-st.caption(" AI Heart Healthcare Dashboard")
+st.caption("AI Heart Healthcare Dashboard")
