@@ -12,7 +12,7 @@ def get_base64(file):
     with open(file,"rb") as f:
         return base64.b64encode(f.read()).decode()
 
-bg=get_base64("Project\Screenshot 2026-08-02 221249.png")
+bg = get_base64("Screenshot 2026-08-02 221249.png")
 
 page_bg=f"""
 <style>
